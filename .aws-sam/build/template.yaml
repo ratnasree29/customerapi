@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'customerapi
+
+  '
+Globals:
+  Function:
+    Runtime: java21
+    Architectures:
+    - x86_64
+    MemorySize: 512
+    Timeout: 60
+    Environment:
+      Variables:
+        CUSTOMERS_TABLE:
+          Ref: CustomersTable
+Resources:
+  CustomersTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: Number
+  CreateCustomerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: CreateCustomerFunction
+      Handler: com.ratna.aws.lambda.apis.CreateCustomerLambda::createCustomer
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: CustomersTable
+      Events:
+        CustomerEvents:
+          Type: Api
+          Properties:
+            Path: /customers
+            Method: POST
+    Metadata:
+      SamResourceId: CreateCustomerFunction
+  ReadCustomerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ReadCustomerFunction
+      Handler: com.ratna.aws.lambda.apis.GetCustomerLambda::getCustomer
+      Policies:
+      - DynamoDBReadPolicy:
+          TableName:
+            Ref: CustomersTable
+      Events:
+        CustomerEvents:
+          Type: Api
+          Properties:
+            Path: /customers
+            Method: GET
+    Metadata:
+      SamResourceId: ReadCustomerFunction
+Outputs:
+  CreateCustomerApi:
+    Description: API Gateway endpoint URL for Prod stage for customerapi function
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/customers/
+  CreateCustomerFunction:
+    Description: Customer API Lambda Function ARN
+    Value:
+      Fn::GetAtt:
+      - CreateCustomerFunction
+      - Arn
+  CreateCustomerFunctionIamRole:
+    Description: Implicit IAM Role created for customerapi function
+    Value:
+      Fn::GetAtt:
+      - CreateCustomerFunctionRole
+      - Arn
